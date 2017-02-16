@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Author: Shu Ye
 """
@@ -16,6 +14,9 @@ class BusinessAsUsual(object):
         self.ghg = ghg
         self.emit_time = emit_time
         self.emit_level = emit_level
+        self.emission_by_decisions = None
+        self.emission_per_period = None
+        self.emissions_to_ghg = None
 
     def emission_by_time(self, time):
         """
@@ -29,7 +30,6 @@ class BusinessAsUsual(object):
                         - self.emit_time[1]) * (self.emit_level[2] - self.emit_level[1])
         else:
             emissions = self.emit_level[2]
-
         return emissions
 
     def bau_emissions_setup(self, tree):
@@ -38,25 +38,16 @@ class BusinessAsUsual(object):
         the emissions rate in each period are assumed to be the average of the emissions at the beginning
         and at the end of the period
         """
-        self.nperiods = tree.num_periods
-        self.decision_times = tree.decision_times
-        self.emissions_per_period = np.zeros(self.nperiods)
-        self.emissions_to_ghg = np.zeros(self.nperiods)
-        for n in range(0, self.nperiods):
-            this_period_time = self.decision_times[n+1] - self.decision_times[n]
-            self.emissions_per_period[n] = this_period_time * (self.emission_by_time(self.decision_times[n]) 
-                                           + self.emission_by_time(self.decision_times[n+1])) / 2
-        total_emissions = self.emissions_per_period.sum()
+        num_periods = tree.num_periods
+        self.emission_by_decisions = np.zeros(num_periods)
+        self.emissions_per_period = np.zeros(num_periods)
+        self.emissions_to_ghg = np.zeros(num_periods)
+        self.emission_by_decisions[0] = self.emission_by_time(tree.decision_times[0])
+        period_len = tree.decision_times[1:] - tree.decision_times[:-1]
+
+        for n in range(1, num_periods):
+            self.emission_by_decisions[n] = self.emission_by_time(tree.decision_times[n])
+            self.emissions_per_period[n] = period_len[n] * (self.emission_by_decisions[n-1:n].mean())
 
         #the total increase in ghg level of 600 (from 400 to 1000) in the bau path is allocated over time
-        self.emissions_to_ghg = 600 * self.emissions_per_period / total_emissions
-        tree.emissions_per_period = self.emissions_per_period
-        tree.emissions_to_ghg = self.emissions_to_ghg
-
-
-if __name__ == "__main__":
-    tree = TreeModel()
-    bau_default_model = BusinessAsUsual()
-    bau_default_model.bau_emissions_setup(tree)
-    print ("tree.emissions_per_period", tree.emissions_per_period)
-    print ("tree.emissions_to_ghg", tree.emissions_to_ghg)
+        self.emissions_to_ghg = 600 * self.emissions_per_period / self.emissions_per_period.sum()
