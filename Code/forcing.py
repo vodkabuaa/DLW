@@ -57,9 +57,9 @@ class Forcing(object):
 		ghg_level = self.ghg_start
 
 		for p in range(0, period):
-			start_emission = (1.0 - m[path[p]]) * self.bau.emission_by_time(self.tree.decision_times[p])
-			if p < self.tree.num_periods: # -1 in bob's
-				end_emission = (1.0 - m[path[p]]) * self.bau.emission_by_time(self.tree.decision_times[p+1])
+			start_emission = (1.0 - m[path[p]]) * self.bau.emission_by_decisions[p]
+			if p < self.tree.num_periods-1: # -1 in bob's
+				end_emission = (1.0 - m[path[p]]) * self.bau.emission_by_decisions[p+1]
 			else:
 				end_emission = start_emission
 			increment = increments[p]
