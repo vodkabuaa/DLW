@@ -38,6 +38,17 @@ class UtilityTree(object):
 			if key in self.information_times:
 				i += 1
 
+	@property
+	def last(self):
+		return self.utility_tree[self.decision_times[-1]]
+
+	@property
+	def num_nodes(self):
+		n = 0
+		for array in self.utility_tree.values():
+			n += len(array)
+		return n
+
 	def __iter__(self):
 		"""Generator which makes the UtilityTree class iteratable. Starts at the
 		end of the tree.
@@ -48,7 +59,7 @@ class UtilityTree(object):
 		"""
 		keys = self.utility_tree.keys()
 		keys.sort(reverse=True)
-		for key in keys:
+		for key in keys[1:]:
 			yield key, self.utility_tree[key]
 
 	def is_decision_time(time_period):
