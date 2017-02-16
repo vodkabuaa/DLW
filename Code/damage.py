@@ -73,6 +73,17 @@ class Damage(object):
 		
 		return weight_on_sim2 * self.emit_pct[1] + weight_on_sim3*self.emit_pct[0]
 
+	def average_mitigation(self, m, node):
+		"""Assuming len(m) == num_periods OBS! not the same m as bob has""" 
+		period = self.tree.get_period(node)
+		state = self.tree.get_state(node, period)
+		period_len = self.tree.decision_times[1:period+1] - self.tree.decision_times[:period]
+		bau_emissions = self.bau.emission_by_decisions[:period]
+		total_emission = np.dot(bau_emissions, period_len)
+		ave_mitigation = np.dot(m[:period], bau_emissions*period_len)
+		return ave_mitigation / total_emission
+
+
 	def damage_simulation_init(self, import_damages=True, **kwargs):
 		"""Initializion of simulation of damages. Either import stored simulation 
 		of damages or simulate new values.
@@ -169,10 +180,13 @@ class Damage(object):
 if __name__ == "__main__":
 	from tree import TreeModel
 	from bau import BusinessAsUsual
+	from utility_tree import UtilityTree
 
 	t = TreeModel()
+	ut = UtilityTree()
 	bau_default_model = BusinessAsUsual()
 	bau_default_model.bau_emissions_setup(t)
+
 	
 	df = Damage(tree=t, bau=bau_default_model)
 	df.damage_simulation_init(
