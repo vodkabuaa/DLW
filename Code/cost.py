@@ -5,6 +5,7 @@ class Cost(object):
 
 	Args:
 		tree (obj 'TreeModel'): Provides the tree structure used.
+		emit_at_0 (float): Initial GHG emission level.
 		g (float): Intital scale of the cost function.
 		a (float): Curvature of the cost function.
 		join_price (float): Price at which the cost curve is extended.
@@ -15,7 +16,6 @@ class Cost(object):
 		tech_scale (float): Determines the sensitivity of technological change 
 			to previous mitigation. 
 		cons_at_0 (float): Intital consumption. Default $30460bn based on US 2010 values.
-		emit_at_0 (float): Initial GHG emission level.
 
 	Attributes:
 		tree (obj 'TreeModel'): Provides the tree structure used.
@@ -37,10 +37,9 @@ class Cost(object):
 
 	"""
 
-	def __init__(self, tree, g=92.08, a=3.413, join_price=2000.0, max_price=2500.0,
+	def __init__(self, tree, emit_at_0, g=92.08, a=3.413, join_price=2000.0, max_price=2500.0,
 				tech_const=1.5, tech_scale=0.0, cons_at_0=30460.0):
 		self.tree = tree
-		self.bau = bau
 		self.g = g
 		self.a = a
 		self.join_price = join_price
@@ -79,8 +78,28 @@ class Cost(object):
 						 - self.cbs_b*mitigation * (self.cbs_k/mitigation)**(1.0/self.cbs_b) / (self.cbs_b-1.0)
 						 + self.cbs_b*self.cbs_level * (self.cbs_k/self.cbs_leve)**(1.0/self.cbs_b)/(self.cbs-1.0))
 			cbs = (base_cbs + extension) * tech_term / self.cons_per_ton
-
 		return cbs
+
+	def price_by_state(self, years, mitigation, ave_mitigation):
+		"""Inverse of the cost function. Gives emissions price for any given 
+		degree of mitigation, average_mitigation, and horizon.
+
+		Args:
+			years (int): Years of technological change so far.
+			mitigation (float): Current mitigation value.
+			ave_mitigation (float): Average mitigation per year up to this point.
+
+		Returns:
+			float: The price.
+
+		"""
+		tech_term = (1.0 - ((self.tech_const + self.tech_scale*ave_mitigation) / 100))**years
+		if mitigation < self.cbs_level:
+			return self.g * self.a * (mitigation**(self.a-1.0)) * tech_term
+		else:
+			return (self.max_price - (self.cbs_k/mitigation)**(1.0/self.cbs_b)) * tech_term
+
+
 
 
 
